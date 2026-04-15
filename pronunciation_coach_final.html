@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pronunciation Coach</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; }
+.app { max-width: 780px; margin: 0 auto; padding: 28px 16px; }
+h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+.subtitle { font-size: 14px; color: #666; margin-bottom: 24px; }
+.screen { display: none; }
+.screen.active { display: block; }
+.paste-area { background: white; border: 1.5px dashed #c0bff0; border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+.paste-area label { font-size: 13px; font-weight: 600; color: #534ab7; display: block; margin-bottom: 10px; }
+textarea { width: 100%; min-height: 180px; border: 1px solid #e0e0dc; border-radius: 10px; padding: 14px; font-size: 15px; font-family: inherit; color: #1a1a1a; background: #fafaf8; resize: vertical; line-height: 1.7; outline: none; }
+textarea:focus { border-color: #afa9ec; background: white; }
+textarea::placeholder { color: #bbb; }
+.row { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.row input { flex: 1; padding: 10px 14px; border: 1px solid #e0e0dc; border-radius: 8px; font-size: 14px; font-family: inherit; background: white; outline: none; min-width: 200px; }
+.row input:focus { border-color: #afa9ec; }
+.row label { font-size: 13px; color: #666; white-space: nowrap; }
+.btn-primary { padding: 13px 28px; font-size: 15px; font-weight: 600; border: none; border-radius: 10px; background: #534ab7; color: white; cursor: pointer; }
+.btn-primary:hover { background: #3c3489; }
+.btn-secondary { padding: 11px 20px; font-size: 14px; border: 1px solid #d0d0cc; border-radius: 10px; background: white; color: #555; cursor: pointer; }
+.btn-secondary:hover { background: #f5f5f3; }
+.saved-list { margin-top: 24px; }
+.saved-list h3 { font-size: 14px; font-weight: 600; color: #444; margin-bottom: 12px; }
+.s-item { background: white; border: 1px solid #e0e0dc; border-radius: 10px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.s-item:hover { border-color: #afa9ec; }
+.s-name { font-size: 14px; font-weight: 600; }
+.s-meta { font-size: 12px; color: #888; }
+.btn-load { padding: 6px 14px; font-size: 13px; border: 1px solid #afa9ec; border-radius: 7px; background: #eeedfe; color: #3c3489; cursor: pointer; font-weight: 600; margin-right: 6px; }
+.btn-del { padding: 6px 10px; font-size: 13px; border: 1px solid #fca5a5; border-radius: 7px; background: #fef2f2; color: #b91c1c; cursor: pointer; }
+.pheader { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.ptitle { font-size: 18px; font-weight: 600; flex: 1; }
+.ppill { font-size: 12px; color: #534ab7; background: #eeedfe; padding: 4px 12px; border-radius: 20px; font-weight: 600; }
+.dots { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.dot { width: 11px; height: 11px; border-radius: 50%; background: #d0d0cc; cursor: pointer; flex-shrink: 0; }
+.dot.active { background: #534ab7; }
+.dot.good { background: #1d9e75; }
+.dot.ok { background: #ba7517; }
+.scard { background: white; border: 1px solid #e0e0dc; border-radius: 14px; padding: 22px; margin-bottom: 16px; }
+.snum { font-size: 11px; font-weight: 600; color: #534ab7; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+.stext { font-size: 20px; color: #1a1a1a; line-height: 1.6; font-weight: 600; margin-bottom: 18px; }
+.ph-section { border-top: 1px solid #f0f0ec; padding-top: 14px; }
+.ph-label { font-size: 12px; color: #888; margin-bottom: 10px; }
+.ph-words { display: flex; flex-wrap: wrap; gap: 8px; }
+.ph-word { background: #f8f8f6; border: 1px solid #e8e8e4; border-radius: 8px; padding: 7px 11px; text-align: center; min-width: 60px; }
+.ph-word .w { font-size: 13px; font-weight: 700; color: #1a1a1a; }
+.ph-word .p { font-size: 11px; color: #534ab7; margin-top: 3px; font-style: italic; }
+.ph-word .t { font-size: 10px; color: #999; margin-top: 2px; }
+.controls { display: flex; gap: 8px; margin: 16px 0; flex-wrap: wrap; align-items: center; }
+.btn-mic { padding: 13px 22px; font-size: 15px; font-weight: 600; border: 2px solid #afa9ec; border-radius: 11px; background: #eeedfe; color: #3c3489; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.btn-mic.on { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.65} }
+.btn-retry { padding: 13px 18px; font-size: 14px; font-weight: 600; border: 1px solid #afa9ec; border-radius: 11px; background: white; color: #534ab7; cursor: pointer; }
+.btn-retry:hover { background: #eeedfe; }
+.btn-nav { padding: 13px 18px; font-size: 14px; border: 1px solid #d0d0cc; border-radius: 11px; background: white; color: #555; cursor: pointer; }
+.btn-nav:hover { background: #f5f5f3; }
+.status { font-size: 14px; color: #666; padding: 8px 0; min-height: 32px; }
+.status.on { color: #b91c1c; font-weight: 600; }
+.status.good { color: #0f6e56; font-weight: 600; }
+.status.retry { color: #854f0b; font-weight: 600; }
+.rcard { background: white; border: 1px solid #e0e0dc; border-radius: 14px; padding: 20px; margin-bottom: 12px; display: none; }
+.rlabel { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 12px; }
+.rlabel.blue { color: #185fa5; }
+.rlabel.amber { color: #854f0b; }
+.htext { font-size: 16px; line-height: 1.8; margin-bottom: 14px; }
+.wok { color: #0f6e56; font-weight: 600; }
+.wwrong { color: #b91c1c; text-decoration: underline wavy #b91c1c; font-weight: 600; }
+.wmiss { color: #854f0b; font-style: italic; }
+.srow { display: flex; align-items: center; gap: 12px; }
+.sbg { flex: 1; height: 10px; background: #f0f0ec; border-radius: 5px; overflow: hidden; }
+.sfill { height: 100%; border-radius: 5px; transition: width .5s; }
+.snum2 { font-size: 20px; font-weight: 700; min-width: 52px; }
+.crow { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0f0ec; font-size: 14px; flex-wrap: wrap; }
+.crow:last-child { border-bottom: none; }
+.cyou { color: #b91c1c; min-width: 140px; }
+.cshould { color: #0f6e56; }
+.cph { color: #534ab7; font-size: 12px; font-style: italic; margin-top: 2px; display: block; }
+.perfect { color: #0f6e56; font-size: 15px; font-weight: 600; padding: 6px 0; }
+.stats { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.stat { background: white; border: 1px solid #e0e0dc; border-radius: 8px; padding: 10px 16px; font-size: 13px; color: #666; }
+.stat strong { color: #1a1a1a; font-size: 16px; display: block; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="screen active" id="s-paste">
+  <h1>🎤 Pronunciation Coach</h1>
+  <p class="subtitle">Paste any text — practice each sentence with your microphone.</p>
+  <div class="paste-area">
+    <label>Paste your text here</label>
+    <textarea id="inp" placeholder="Paste any English text here to practice...&#10;&#10;Example: I am a clinical immunologist with seven years of experience. I specialised in flow cytometry and immunophenotyping."></textarea>
+  </div>
+  <div class="row">
+    <label>Session name:</label>
+    <input type="text" id="sname" placeholder="e.g. MCI meeting answers..." maxlength="60" />
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <button class="btn-primary" onclick="startPractice()">Start practice →</button>
+    <button class="btn-secondary" onclick="document.getElementById('inp').value='';document.getElementById('sname').value=''">Clear</button>
+  </div>
+  <div id="saved-area"></div>
+</div>
+
+<div class="screen" id="s-practice">
+  <div style="margin-bottom:16px">
+    <button class="btn-secondary" onclick="goHome()">← New text</button>
+  </div>
+  <div class="pheader">
+    <div class="ptitle" id="ptitle">Practice</div>
+    <div class="ppill" id="ppill">1 / 1</div>
+  </div>
+  <div class="stats">
+    <div class="stat"><strong id="st-done">0</strong>Completed</div>
+    <div class="stat"><strong id="st-perf">0</strong>Perfect</div>
+    <div class="stat"><strong id="st-avg">—</strong>Avg score</div>
+  </div>
+  <div class="dots" id="dots"></div>
+  <div class="scard">
+    <div class="snum" id="snum">Sentence 1 of 1</div>
+    <div class="stext" id="stext"></div>
+    <div class="ph-section">
+      <div class="ph-label">Pronunciation guide — every word:</div>
+      <div class="ph-words" id="phwords"></div>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="btn-nav" onclick="prevS()">← Back</button>
+    <button class="btn-mic" id="micbtn" onclick="toggleMic()">
+      <span id="micicon">🎤</span>
+      <span id="miclabel">Press &amp; speak</span>
+    </button>
+    <button class="btn-retry" onclick="retry()">↺ Try again</button>
+    <button class="btn-nav" onclick="nextS()">Next →</button>
+  </div>
+  <div class="status" id="status">Press the mic, then say the sentence clearly.</div>
+  <div class="rcard" id="rc1">
+    <div class="rlabel blue">What the microphone heard:</div>
+    <div class="htext" id="htext"></div>
+    <div class="srow">
+      <div class="sbg"><div class="sfill" id="sfill"></div></div>
+      <div class="snum2" id="scorenum"></div>
+    </div>
+  </div>
+  <div class="rcard" id="rc2">
+    <div class="rlabel amber">Word-by-word feedback:</div>
+    <div id="cbody"></div>
+  </div>
+</div>
+
+</div>
+<script>
+// ─── Phonetics dictionary — ALL words ─────────────────────────────────────────
+const PH = {
+  // Every common English word
+  "i":"ay","a":"uh","an":"an","the":"thuh","of":"uv","to":"tuh","for":"for",
+  "and":"and","in":"in","is":"iz","are":"ar","was":"wuz","were":"wer",
+  "my":"my","your":"yor","their":"thair","our":"owr","his":"hiz","her":"her",
+  "its":"its","we":"wee","you":"yoo","he":"hee","she":"shee","they":"thay",
+  "them":"them","with":"with","have":"hav","has":"haz","had":"had",
+  "be":"bee","been":"bin","being":"BEE-ing","do":"doo","does":"duz","did":"did",
+  "that":"that","this":"this","it":"it","not":"not","but":"but","from":"from",
+  "by":"by","on":"on","at":"at","as":"az","or":"or","so":"soh","if":"if",
+  "up":"up","out":"owt","me":"mee","him":"him","us":"us","am":"am","who":"hoo",
+  "what":"wut","which":"wich","when":"wen","where":"wair","why":"wy",
+  "how":"how","there":"thair","here":"heer","now":"now","then":"then",
+  "than":"than","too":"too","very":"VEH-ree","just":"just","also":"AWL-soh",
+  "only":"OHN-lee","all":"awl","both":"bohth","each":"eech","some":"sum",
+  "any":"EN-ee","no":"noh","more":"mor","most":"mohst","other":"UTH-er",
+  "such":"such","same":"saym","own":"ohn","even":"EE-ven","well":"wel",
+  "back":"bak","still":"stil","way":"way","new":"nyoo","old":"ohld",
+  "first":"ferst","last":"last","long":"long","great":"grayt","good":"gud",
+  "high":"hy","hard":"hard","early":"ER-lee","real":"reel","true":"troo",
+  "will":"wil","can":"kan","may":"may","might":"myt","shall":"shal",
+  "would":"wud","could":"kud","should":"shud",
+  "about":"uh-BOWT","into":"IN-too","over":"OH-ver","after":"AF-ter",
+  "before":"bih-FOR","between":"bih-TWEEN","through":"throo",
+  "during":"DYOOR-ing","without":"with-OWT","because":"bih-KUZ",
+  "although":"awl-THOH","however":"how-EV-er","therefore":"THAIR-for",
+  "instead":"in-STED","while":"wyl","since":"sins","within":"with-IN",
+  "along":"uh-LONG","around":"uh-ROWND","against":"uh-GENST",
+  "see":"see","make":"mayk","take":"tayk","come":"kum","get":"get",
+  "go":"goh","know":"noh","think":"think","look":"luk","want":"wont",
+  "give":"giv","use":"yooz","find":"fynd","tell":"tel","ask":"ask",
+  "seem":"seem","feel":"feel","try":"try","keep":"keep","let":"let",
+  "show":"shoh","hear":"heer","help":"help","put":"put","say":"say",
+  "need":"need","call":"kawl","work":"werk","people":"PEE-pul",
+  "important":"im-POR-tunt","different":"DIF-rent","interest":"IN-trest",
+  "done":"dun","gone":"gon","seen":"seen","taken":"TAY-ken",
+  "having":"HAV-ing","doing":"DOO-ing","going":"GOH-ing","saying":"SAY-ing",
+  "getting":"GET-ing","making":"MAY-king","looking":"LUK-ing",
+  "working":"WER-king","trying":"TRY-ing","coming":"KUM-ing",
+  "taking":"TAY-king","giving":"GIV-ing","known":"nohn","called":"kawld",
+  "used":"yoozd","given":"GIV-en","able":"AY-bul","already":"awl-RED-ee",
+  "always":"AWL-wayz","never":"NEV-er","often":"OF-en","really":"REE-uh-lee",
+  "today":"tuh-DAY","tomorrow":"tuh-MOR-oh","yesterday":"YES-ter-day",
+  "every":"EV-ree","another":"uh-NUTH-er","again":"uh-GEN","though":"thoh",
+  "through":"throo","enough":"ih-NUF","thought":"thawt","bought":"bawt",
+  "brought":"brawt","taught":"tawt","caught":"kawt","ought":"awt",
+  "these":"theez","those":"thohz","much":"much","many":"MEN-ee","few":"fyoo",
+  "less":"les","little":"LIT-ul","big":"big","small":"smawl","large":"larj",
+  "right":"ryt","left":"left","next":"nekst","last":"last","near":"neer",
+  "far":"far","open":"OH-pen","free":"free","sure":"shoor","true":"troo",
+  "else":"els","rather":"RATH-er","quite":"kwyt","almost":"AWL-mohst",
+  "yet":"yet","already":"awl-RED-ee","soon":"soon","maybe":"MAY-bee",
+  "perhaps":"per-HAPS","however":"how-EV-er","together":"tuh-GETH-er",
+  "between":"bih-TWEEN","against":"uh-GENST","during":"DYOOR-ing",
+  "among":"uh-MUNG","within":"with-IN","beyond":"bee-OND","below":"bih-LOH",
+  "above":"uh-BUV","across":"uh-KROS","along":"uh-LONG","around":"uh-ROWND",
+  "behind":"bih-HYND","beside":"bih-SYD","despite":"dih-SPYT",
+  // Registration / confirmation words (from screenshot)
+  "registered":"REJ-is-terd","registration":"rej-ih-STRAY-shun",
+  "transfer":"TRANS-fer","confirmation":"kon-fer-MAY-shun",
+  "received":"rih-SEEVD","session":"SESH-un","sessions":"SESH-unz",
+  "april":"AY-prul","event":"ih-VENT","code":"kohd","scan":"skan",
+  "email":"EE-mayl","emails":"EE-maylz","yet":"yet","via":"VEE-uh",
+  // Science & immunology
+  "immunologist":"im-yoo-NOL-uh-jist","immunology":"im-yoo-NOL-uh-jee",
+  "immunophenotyping":"im-yoo-noh-FEE-noh-typ-ing",
+  "immunodeficiency":"im-yoo-noh-dih-FISH-en-see",
+  "clinical":"KLIN-ih-kul","clinically":"KLIN-ih-klee",
+  "translational":"trans-LAY-shun-ul","cytometry":"sy-TOM-ih-tree",
+  "transferable":"trans-FER-uh-bul","qualifications":"kwol-ih-fih-KAY-shunz",
+  "publications":"pub-lih-KAY-shunz","presentation":"prez-en-TAY-shun",
+  "experience":"ik-SPEER-ee-ens","pharmaceutical":"far-muh-SOO-tih-kul",
+  "liaison":"lee-AY-zon","liaisons":"lee-AY-zonz",
+  "evidence":"EV-ih-dens","registry":"REJ-is-tree",
+  "computational":"kom-pyoo-TAY-shun-ul","fundamental":"fun-duh-MEN-tul",
+  "collaborate":"kuh-LAB-uh-rayt","collaboration":"kuh-lab-uh-RAY-shun",
+  "repositioning":"ree-puh-ZI-shun-ing","restructuring":"ree-STRUK-cher-ing",
+  "specialised":"SPESH-uh-lyzd","specialized":"SPESH-uh-lyzd",
+  "biological":"by-uh-LOJ-ih-kul","pathophysiology":"path-oh-fiz-ee-OL-uh-jee",
+  "dysregulation":"dis-reg-yoo-LAY-shun","therapeutics":"thair-uh-PYOO-tiks",
+  "therapeutic":"thair-uh-PYOO-tik","regulatory":"REG-yoo-luh-tor-ee",
+  "pharmacovigilance":"far-muh-koh-VIJ-ih-lens",
+  "biomarker":"BY-oh-mar-ker","biomarkers":"BY-oh-mar-kerz",
+  "hematology":"hee-muh-TOL-uh-jee","rheumatology":"roo-muh-TOL-uh-jee",
+  "gastroenterology":"gas-troh-en-ter-OL-uh-jee",
+  "dermatology":"der-muh-TOL-uh-jee","neurology":"nyoo-ROL-uh-jee",
+  "oncology":"on-KOL-uh-jee","epidemiology":"ep-ih-dee-mee-OL-uh-jee",
+  "pathology":"puh-THOL-uh-jee","cytokine":"SY-toh-kyn","cytokines":"SY-toh-kynz",
+  "phenotype":"FEE-noh-typ","phenotypes":"FEE-noh-typs",
+  "genotype":"JEE-noh-typ","genome":"JEE-nohm",
+  "antibody":"AN-tih-bod-ee","antibodies":"AN-tih-bod-eez",
+  "lymphocyte":"LIM-foh-syt","lymphocytes":"LIM-foh-syts",
+  "protein":"PROH-teen","proteins":"PROH-teenz",
+  "mutation":"myoo-TAY-shun","mutations":"myoo-TAY-shunz",
+  "diagnosis":"dy-ug-NOH-sis","diagnostic":"dy-ug-NOS-tik",
+  "patient":"PAY-shent","patients":"PAY-shents",
+  "assay":"A-say","assays":"A-sayz",
+  "pathway":"PATH-way","pathways":"PATH-wayz",
+  "laboratory":"luh-BOR-uh-tor-ee","laboratories":"luh-BOR-uh-tor-eez",
+  "citation":"sy-TAY-shun","citations":"sy-TAY-shunz",
+  "published":"PUB-lisht","publishing":"PUB-lish-ing",
+  // Hyphenated words
+  "cross-functional":"KROSS FUNK-shun-ul",
+  "bench-focused":"BENCH FOH-kust",
+  "hands-on":"HANDZ-on","peer-reviewed":"PEER rih-VYOOD",
+  "real-world":"REEL WURLD","long-term":"LONG TERM",
+  "short-term":"SHORT TERM","data-driven":"DAY-tuh DRIV-en",
+  "evidence-based":"EV-ih-dens BAYST","cross-disciplinary":"KROSS DIS-ih-PLIN-uh-ree",
+  "well-established":"WEL ih-STAB-lisht",
+  // Career & professional
+  "industry":"IN-dus-tree","academic":"ak-uh-DEM-ik",
+  "opportunity":"op-er-TOO-nih-tee","opportunities":"op-er-TOO-nih-teez",
+  "contribute":"kun-TRIB-yoot","contribution":"kon-trih-BYOO-shun",
+  "professional":"pruh-FESH-un-ul","portfolio":"port-FOH-lee-oh",
+  "colleagues":"KOL-eegz","colleague":"KOL-eeg","expertise":"ex-per-TEEZ",
+  "qualification":"kwol-ih-fih-KAY-shun","candidate":"KAN-dih-dayt",
+  "organisation":"or-guh-ny-ZAY-shun","organization":"or-guh-ny-ZAY-shun",
+  "responsibilities":"rih-spon-suh-BIL-ih-teez",
+  "responsibility":"rih-spon-suh-BIL-ih-tee",
+  "achievement":"uh-CHEEV-ment","achievements":"uh-CHEEV-ments",
+  "management":"MAN-ij-ment","leadership":"LEE-der-ship",
+  "communication":"kuh-myoo-nih-KAY-shun","interview":"IN-ter-vyoo",
+  "feedback":"FEED-bak","application":"ap-lih-KAY-shun",
+  "applications":"ap-lih-KAY-shunz","position":"puh-ZI-shun",
+  "positions":"puh-ZI-shunz","transition":"tran-ZI-shun",
+  "positioning":"puh-ZI-shun-ing","interested":"IN-trest-id",
+  "interesting":"IN-trest-ing","specifically":"spuh-SIF-ik-lee",
+  "specific":"spuh-SIF-ik","research":"REE-serch","profile":"PROH-fyl",
+  "roles":"rohlz","career":"kuh-REER","focus":"FOH-kus",
+  "focused":"FOH-kust","focusing":"FOH-kus-ing",
+  "initiative":"ih-NISH-uh-tiv","innovative":"IN-uh-vay-tiv",
+  "analytical":"an-uh-LIT-ih-kul","strategic":"struh-TEE-jik",
+  "functional":"FUNK-shun-ul","commercial":"kuh-MER-shul",
+  "medical":"MED-ih-kul","attracted":"uh-TRAK-tid","purely":"PYOOR-lee",
+  "nature":"NAY-cher","appeals":"uh-PEELZ","particularly":"per-TIK-yoo-ler-lee",
+  "especially":"ih-SPESH-uh-lee","necessary":"NES-uh-ser-ee",
+  "usually":"YOO-zhoo-uh-lee","actually":"AK-choo-uh-lee",
+  "frequently":"FREE-kwent-lee","recently":"REE-sent-lee",
+  "currently":"KUR-ent-lee","previously":"PREE-vee-us-lee",
+  "throughout":"throo-OWT","grateful":"GRAYT-ful","deeply":"DEEP-lee",
+  "clarifying":"KLAIR-ih-fy-ing","advise":"ad-VYZ","suggest":"sug-JEST",
+  "objective":"ob-JEK-tiv","scientific":"sy-en-TIF-ik",
+  "honest":"ON-ist","hour":"OW-er","wednesday":"WENZ-day",
+  "february":"FEB-roo-air-ee","comfortable":"KUMF-ter-bul",
+  "Barcelona":"bar-suh-LOH-nuh","Tehran":"teh-RAHN",
+  "europe":"YOOR-up","european":"yoor-uh-PEE-un",
+  "germany":"JER-muh-nee","switzerland":"SWIT-ser-lund",
+  "acknowledge":"ak-NOL-ij","knowledge":"NOL-ij",
+  "international":"in-ter-NASH-un-ul","additional":"uh-DISH-un-ul",
+  "implementation":"im-pluh-men-TAY-shun",
+  "administration":"ad-min-ih-STRAY-shun",
+  "recommendation":"rek-uh-men-DAY-shun",
+  "consideration":"kun-sid-er-AY-shun",
+  "preparation":"prep-uh-RAY-shun","participation":"par-tis-ih-PAY-shun",
+  "approach":"uh-PROHCH","approaches":"uh-PROH-chiz",
+};
+
+const TIPS = {
+  "i":"capital I — say like 'eye'",
+  "a":"weak sound — like 'uh'",
+  "of":"say 'uv' not 'off'",
+  "the":"say 'thuh' before consonants",
+  "would":"silent L","could":"silent L","should":"silent L",
+  "honest":"silent H","hour":"silent H",
+  "immunologist":"stress 3rd syllable: NOL",
+  "immunology":"stress 3rd syllable: NOL",
+  "translational":"stress 2nd: trans-LAY",
+  "cytometry":"stress 2nd: sy-TOM",
+  "experience":"stress 2nd: SPEER",
+  "opportunity":"stress 3rd: TOO",
+  "interested":"only 3 syllables — not 4",
+  "regulatory":"5 syllables: REG-yoo-luh-tor-ee",
+  "cross-functional":"pause at hyphen",
+  "liaison":"stress 2nd: lee-AY",
+  "particularly":"5 syllables",
+};
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let sentences=[], idx=0, scores={}, sessionName="", rec=null, listening=false, saved=[];
+
+// ─── Text processing ──────────────────────────────────────────────────────────
+function splitSentences(text) {
+  return text.trim()
+    .split(/(?<=[.!?])\s+(?=[A-Z])|(?<=[.!?])\n+/)
+    .map(s=>s.trim()).filter(s=>s.length>4);
+}
+
+function getPhonetics(sentence) {
+  // Split preserving hyphenated words
+  const tokens = sentence.match(/[\w]+-[\w]+|[\w']+/g) || [];
+  return tokens.map(raw => {
+    const clean = raw.toLowerCase().replace(/[^a-z\-]/g,'');
+    const ph = PH[clean];
+    const tip = TIPS[clean] || '';
+    if (ph) return {w:raw, p:ph, tip};
+    return null;
+  }).filter(Boolean);
+}
+
+// ─── Screens ──────────────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s-'+id).classList.add('active');
+}
+
+function startPractice(preloaded) {
+  const text = preloaded || document.getElementById('inp').value.trim();
+  const name = preloaded ? sessionName : (document.getElementById('sname').value.trim()||'Session');
+  if (!text) { alert('Please paste some text first.'); return; }
+  sentences = splitSentences(text);
+  if (!sentences.length) { alert('No sentences found. Make sure text has punctuation (. ! ?)'); return; }
+  sessionName = name; idx = 0; scores = {};
+  if (!preloaded) {
+    saved.unshift({name, text, date: new Date().toLocaleDateString()});
+    if (saved.length>8) saved.pop();
+    renderSaved();
+  }
+  document.getElementById('ptitle').textContent = sessionName;
+  showScreen('practice');
+  renderSentence();
+  updateStats();
+}
+
+function goHome() { if(listening) stopMic(); showScreen('paste'); }
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function renderSentence() {
+  const s = sentences[idx];
+  document.getElementById('snum').textContent = `Sentence ${idx+1} of ${sentences.length}`;
+  document.getElementById('ppill').textContent = `${idx+1} / ${sentences.length}`;
+  document.getElementById('stext').textContent = s;
+
+  const words = getPhonetics(s);
+  const el = document.getElementById('phwords');
+  if (!words.length) {
+    el.innerHTML = '<span style="font-size:13px;color:#aaa;font-style:italic">No words found in pronunciation guide for this sentence.</span>';
+  } else {
+    el.innerHTML = words.map(w=>
+      `<div class="ph-word">
+        <div class="w">${w.w}</div>
+        <div class="p">${w.p}</div>
+        ${w.tip?`<div class="t">${w.tip}</div>`:''}
+      </div>`
+    ).join('');
+  }
+
+  renderDots(); hideResults(); resetStatus();
+}
+
+function renderDots() {
+  document.getElementById('dots').innerHTML = sentences.map((_,i)=>{
+    let c='dot';
+    if(i===idx) c+=' active';
+    else if(scores[i]>=80) c+=' good';
+    else if(scores[i]!==undefined) c+=' ok';
+    return `<div class="${c}" onclick="goTo(${i})" title="Sentence ${i+1}${scores[i]!==undefined?' — '+scores[i]+'%':''}"></div>`;
+  }).join('');
+}
+
+function updateStats() {
+  const done=Object.keys(scores).length;
+  const perf=Object.values(scores).filter(s=>s===100).length;
+  const vals=Object.values(scores);
+  const avg=vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):null;
+  document.getElementById('st-done').textContent=done;
+  document.getElementById('st-perf').textContent=perf;
+  document.getElementById('st-avg').textContent=avg!==null?avg+'%':'—';
+}
+
+function goTo(i){idx=i;renderSentence();}
+function nextS(){idx=(idx+1)%sentences.length;renderSentence();}
+function prevS(){idx=(idx-1+sentences.length)%sentences.length;renderSentence();}
+function hideResults(){document.getElementById('rc1').style.display='none';document.getElementById('rc2').style.display='none';}
+function resetStatus(){const e=document.getElementById('status');e.textContent='Press the mic, then say the sentence clearly.';e.className='status';}
+
+// ─── Mic ──────────────────────────────────────────────────────────────────────
+function toggleMic(){ listening ? stopMic() : startMic(); }
+function retry(){ stopMic(); setTimeout(startMic, 300); }
+
+function startMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { document.getElementById('status').textContent='Use Chrome or Edge browser.'; return; }
+  rec = new SR();
+  rec.lang='en-US'; rec.interimResults=false; rec.maxAlternatives=1;
+  rec.onstart=()=>{
+    listening=true;
+    document.getElementById('micbtn').classList.add('on');
+    document.getElementById('miclabel').textContent='Listening... click to stop';
+    document.getElementById('micicon').textContent='⏹';
+    document.getElementById('status').textContent='Listening — speak clearly now!';
+    document.getElementById('status').className='status on';
+  };
+  rec.onresult=(e)=>{ showResult(e.results[0][0].transcript); resetMicBtn(); };
+  rec.onerror=(e)=>{
+    let msg='Error: '+e.error;
+    if(e.error==='not-allowed') msg='Microphone blocked. Please allow access.';
+    if(e.error==='no-speech') msg='No speech heard. Press mic and try again.';
+    document.getElementById('status').textContent=msg;
+    document.getElementById('status').className='status retry';
+    resetMicBtn();
+  };
+  rec.onend=()=>resetMicBtn();
+  rec.start();
+}
+
+function stopMic(){ if(rec){rec.stop();rec=null;} resetMicBtn(); }
+
+function resetMicBtn(){
+  listening=false;
+  document.getElementById('micbtn').classList.remove('on');
+  document.getElementById('miclabel').textContent='Press & speak';
+  document.getElementById('micicon').textContent='🎤';
+}
+
+// ─── Result ───────────────────────────────────────────────────────────────────
+function showResult(heard) {
+  const target = sentences[idx];
+  const tw = target.toLowerCase().replace(/-/g,' ').replace(/[^a-z\s]/g,'').split(/\s+/).filter(Boolean);
+  const hw = heard.toLowerCase().replace(/-/g,' ').replace(/[^a-z\s]/g,'').split(/\s+/).filter(Boolean);
+
+  let correct=0, html=[], corr=[];
+  tw.forEach((t,i)=>{
+    const h=hw[i];
+    if(!h){ html.push(`<span class="wmiss">[missed: ${t}]</span>`); corr.push({you:'(missing)',should:t}); }
+    else if(h===t){ html.push(`<span class="wok">${h}</span>`); correct++; }
+    else { html.push(`<span class="wwrong">${h}</span>`); corr.push({you:h,should:t}); }
+  });
+
+  const score=Math.round((correct/tw.length)*100);
+  const color=score>=80?'#1d9e75':score>=50?'#ba7517':'#d85a30';
+  scores[idx]=score;
+
+  document.getElementById('rc1').style.display='block';
+  document.getElementById('htext').innerHTML=html.join(' ');
+  document.getElementById('sfill').style.width=score+'%';
+  document.getElementById('sfill').style.background=color;
+  document.getElementById('scorenum').textContent=score+'%';
+  document.getElementById('scorenum').style.color=color;
+
+  document.getElementById('rc2').style.display='block';
+  if(!corr.length){
+    document.getElementById('cbody').innerHTML='<div class="perfect">Perfect — every word matched! Press ↺ to try faster, or Next →</div>';
+  } else {
+    document.getElementById('cbody').innerHTML=corr.map(c=>{
+      const key=c.should.replace(/\s+/g,'-');
+      const ph=PH[c.should]||PH[key]||'';
+      const tip=TIPS[c.should]||TIPS[key]||'';
+      return `<div class="crow">
+        <div class="cyou">You said: <strong>"${c.you}"</strong></div>
+        <div class="cshould">Should be: <strong>"${c.should}"</strong>
+          ${ph?`<span class="cph">${ph}${tip?' — '+tip:''}</span>`:''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  const st=document.getElementById('status');
+  if(score===100){st.textContent='Perfect! Press ↺ to say it faster.';st.className='status good';}
+  else if(score>=80){st.textContent=score+'% — good! Press ↺ to improve.';st.className='status good';}
+  else{st.textContent=score+'% — focus on red words. Press ↺ Try again.';st.className='status retry';}
+
+  renderDots(); updateStats();
+}
+
+// ─── Saved sessions ───────────────────────────────────────────────────────────
+function renderSaved(){
+  const el=document.getElementById('saved-area');
+  if(!saved.length){el.innerHTML='';return;}
+  el.innerHTML=`<div class="saved-list"><h3>Recent sessions</h3>${
+    saved.map((s,i)=>`<div class="s-item">
+      <div><div class="s-name">${s.name}</div><div class="s-meta">${s.date} · ${splitSentences(s.text).length} sentences</div></div>
+      <div><button class="btn-load" onclick="loadS(${i})">Practice again</button><button class="btn-del" onclick="delS(${i})">✕</button></div>
+    </div>`).join('')
+  }</div>`;
+}
+
+function loadS(i){sessionName=saved[i].name;document.getElementById('inp').value=saved[i].text;startPractice(saved[i].text);}
+function delS(i){saved.splice(i,1);renderSaved();}
+</script>
+</body>
+</html>
